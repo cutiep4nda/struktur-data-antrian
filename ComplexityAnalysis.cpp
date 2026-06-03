@@ -20,6 +20,123 @@ struct LinkedNode {
     LinkedNode *prev;
 };
 
+// === HASH TABLE ===
+struct HashEntry {
+    string key;
+    LinkedNode* value;
+    HashEntry* next;
+};
+
+struct HashTable {
+    HashEntry** slot;
+    int kapasitas;
+    int jumlahIsi;
+};
+
+int hashFunction(const string& key, int kapasitas) {
+    int total = 0;
+    for (int i = 0; i < (int)key.length(); i++) {
+        total = (total * 31 + (int)key[i]) % kapasitas;
+    }
+    return total;
+}
+
+HashTable* buatHashTable(int kapasitasAwal) {
+    HashTable* ht = new HashTable;
+    ht->kapasitas = kapasitasAwal;
+    ht->jumlahIsi = 0;
+    ht->slot = new HashEntry*[kapasitasAwal];
+    for (int i = 0; i < kapasitasAwal; i++) ht->slot[i] = nullptr;
+    return ht;
+}
+
+void insertSaja(HashTable* ht, const string& key, LinkedNode* node) {
+    int index = hashFunction(key, ht->kapasitas);
+    HashEntry* entryBaru = new HashEntry;
+    entryBaru->key   = key;
+    entryBaru->value = node;
+    entryBaru->next  = nullptr;
+    if (ht->slot[index] == nullptr) {
+        ht->slot[index] = entryBaru;
+    } else {
+        entryBaru->next = ht->slot[index];
+        ht->slot[index] = entryBaru;
+    }
+    ht->jumlahIsi++;
+}
+
+void rehash(HashTable* ht) {
+    int kapasitasLama = ht->kapasitas;
+    int kapasitasBaru = kapasitasLama * 2;
+    HashEntry** slotBaru = new HashEntry*[kapasitasBaru];
+    for (int i = 0; i < kapasitasBaru; i++) slotBaru[i] = nullptr;
+    for (int i = 0; i < kapasitasLama; i++) {
+        HashEntry* cur = ht->slot[i];
+        while (cur != nullptr) {
+            HashEntry* selanjutnya = cur->next;
+            int indexBaru = hashFunction(cur->key, kapasitasBaru);
+            cur->next = slotBaru[indexBaru];
+            slotBaru[indexBaru] = cur;
+            cur = selanjutnya;
+        }
+    }
+    delete[] ht->slot;
+    ht->slot      = slotBaru;
+    ht->kapasitas = kapasitasBaru;
+}
+
+void htInsert(HashTable* ht, const string& key, LinkedNode* node) {
+    if (ht->jumlahIsi * 4 >= ht->kapasitas * 3) rehash(ht);
+    insertSaja(ht, key, node);
+}
+
+LinkedNode* htCari(HashTable* ht, const string& key) {
+    int index = hashFunction(key, ht->kapasitas);
+    HashEntry* cur = ht->slot[index];
+    while (cur != nullptr) {
+        if (cur->key == key) return cur->value;
+        cur = cur->next;
+    }
+    return nullptr;
+}
+
+void htHapus(HashTable* ht, const string& key) {
+    int index = hashFunction(key, ht->kapasitas);
+    HashEntry* cur  = ht->slot[index];
+    HashEntry* prev = nullptr;
+    while (cur != nullptr) {
+        if (cur->key == key) {
+            if (prev == nullptr) ht->slot[index] = cur->next;
+            else prev->next = cur->next;
+            delete cur;
+            ht->jumlahIsi--;
+            return;
+        }
+        prev = cur;
+        cur  = cur->next;
+    }
+}
+
+void bersihkanHashTable(HashTable* ht) {
+    for (int i = 0; i < ht->kapasitas; i++) {
+        HashEntry* cur = ht->slot[i];
+        while (cur != nullptr) {
+            HashEntry* next = cur->next;
+            delete cur;
+            cur = next;
+        }
+        ht->slot[i] = nullptr;
+    }
+    ht->jumlahIsi = 0;
+}
+
+void hapusHashTable(HashTable* ht) {
+    bersihkanHashTable(ht);
+    delete[] ht->slot;
+    delete ht;
+}
+// === END HASH TABLE ===
+
 Patient makePatient(const string &id, const string &nama, const string &noAntrian) {
     Patient patient;
     patient.data[0] = id;
@@ -56,6 +173,7 @@ private:
     LinkedNode *headUmum;
     LinkedNode *front;
     size_t count;
+    HashTable* ht;
 
     LinkedNode *createNode(const Patient &patient) {
         LinkedNode *node = new LinkedNode;
@@ -77,7 +195,8 @@ private:
     }
 
 public:
-    DoublyLinkedQueue() : count(0) {
+    DoublyLinkedQueue() : count(0), ht(nullptr) {
+        ht = buatHashTable(11);
         Patient dummy;
         dummy.data[0] = "";
         dummy.data[1] = "";
@@ -105,6 +224,7 @@ public:
         delete headDarurat;
         delete headLansia;
         delete headUmum;
+        hapusHashTable(ht);
     }
 
     void clear() {
@@ -118,33 +238,30 @@ public:
         }
         headDarurat->next = headLansia;
         headDarurat->prev = nullptr;
-        headLansia->prev = headDarurat;
-        headLansia->next = headUmum;
-        headUmum->prev = headLansia;
-        headUmum->next = nullptr;
+        headLansia->prev  = headDarurat;
+        headLansia->next  = headUmum;
+        headUmum->prev    = headLansia;
+        headUmum->next    = nullptr;
         front = headDarurat;
         count = 0;
+        bersihkanHashTable(ht);
     }
 
     void insert(const Patient &patient) {
         if (patient.data[3] == "1") {
             insertAfter(headDarurat, patient);
+            htInsert(ht, patient.data[0], headDarurat->next);
         } else if (patient.data[3] == "2") {
             insertAfter(headLansia, patient);
+            htInsert(ht, patient.data[0], headLansia->next);
         } else {
             insertAfter(headUmum, patient);
+            htInsert(ht, patient.data[0], headUmum->next);
         }
     }
 
     LinkedNode *search(const string &id) const {
-        LinkedNode *cur = front;
-        while (cur != nullptr) {
-            if (cur->patient.data[0] == id) {
-                return cur;
-            }
-            cur = cur->next;
-        }
-        return nullptr;
+        return htCari(ht, id); // O(1) via Hash Table
     }
 
     bool update(const string &id, const string &status) {
@@ -157,10 +274,11 @@ public:
     }
 
     bool remove(const string &id) {
-        LinkedNode *node = search(id);
+        LinkedNode *node = htCari(ht, id);
         if (node == nullptr || node == headDarurat || node == headLansia || node == headUmum) {
             return false;
         }
+        htHapus(ht, id);
         node->prev->next = node->next;
         if (node->next != nullptr) {
             node->next->prev = node->prev;
@@ -180,6 +298,10 @@ public:
             }
             cur = cur->next;
         }
+        // tambahkan memori hash table
+        bytes += sizeof(HashTable);
+        bytes += ht->kapasitas * sizeof(HashEntry*);
+        bytes += ht->jumlahIsi * sizeof(HashEntry);
         return bytes;
     }
 };
@@ -413,9 +535,9 @@ int main() {
         cout << "\nCatatan Kompleksitas Teoretis:\n";
         cout << "- Insert linked list: O(1) per data karena masuk setelah head prioritas.\n";
         cout << "- Insert vector: amortized O(1) per data dengan push_back.\n";
-        cout << "- Search: O(n) pada kedua struktur karena pencarian berdasarkan ID dilakukan linear.\n";
-        cout << "- Update berdasarkan ID: O(n) pada kedua struktur karena perlu mencari ID lebih dulu.\n";
-        cout << "- Delete berdasarkan ID: linked list O(n) untuk pencarian + O(1) unlink, vector O(n) untuk pencarian + O(n) shifting.\n";
+        cout << "- Search: O(1) pada Linked List (via Hash Table), O(n) pada Vector (linear scan).\n";
+        cout << "- Update berdasarkan ID: O(1) pada Linked List (via Hash Table), O(n) pada Vector.\n";
+        cout << "- Delete berdasarkan ID: Linked List O(1) hapus hash + O(1) unlink, Vector O(n) scan + O(n) shifting.\n";
     } catch (const exception &error) {
         cerr << "Error: " << error.what() << '\n';
         return 1;

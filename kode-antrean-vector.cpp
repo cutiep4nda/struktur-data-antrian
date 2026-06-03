@@ -64,6 +64,31 @@ void cariData(vector<Node> &v, string id)
     cout << "Data dengan id : " << id << " tidak ditemukan." << endl;
 }
 
+bool cekDuplikat(vector<Node> &v, string data[]) {
+    bool dupId = false, dupNama = false, dupNoAntrian = false;
+    for (int i = 0; i < (int)v.size(); i++) {
+        if (v[i].data[0] == data[0]) dupId = true;
+        if (v[i].data[1] == data[1]) dupNama = true;
+        if (v[i].data[4] == data[4]) dupNoAntrian = true;
+    }
+    if (!dupId && !dupNama && !dupNoAntrian) return false;
+
+    vector<string> fields;
+    if (dupId) fields.push_back("ID");
+    if (dupNama) fields.push_back("Nama");
+    if (dupNoAntrian) fields.push_back("No Antrian");
+
+    string msg = "Data ditolak! ";
+    for (int i = 0; i < (int)fields.size(); i++) {
+        if (i > 0 && i == (int)fields.size() - 1) msg += " dan ";
+        else if (i > 0) msg += ", ";
+        msg += fields[i];
+    }
+    msg += " sudah ada di antrian";
+    cout << msg << endl;
+    return true;
+}
+
 int main()
 {
     vector<Node> queue;
@@ -91,6 +116,7 @@ int main()
             input.data[6] = "Dalam Antrian";
 
             cin >> input.data[0] >> input.data[1] >> input.data[2] >> input.data[4] >> input.data[5];
+            if (cekDuplikat(queue, input.data)) break;
             switch (tipe)
             {
             case 1:

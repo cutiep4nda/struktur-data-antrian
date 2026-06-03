@@ -64,6 +64,34 @@ void cariData(Node *front, string id) {
   }
 }
 
+bool cekDuplikat(Node *front, string data[]) {
+    bool dupId = false, dupNama = false, dupNoAntrian = false;
+    Node *cur = front;
+    while (cur != nullptr) {
+        if (cur->data[0] != "" && cur->data[0] == data[0]) dupId = true;
+        if (cur->data[1] != "" && cur->data[1] == data[1]) dupNama = true;
+        if (cur->data[4] != "" && cur->data[4] == data[4]) dupNoAntrian = true;
+        cur = cur->next;
+    }
+    if (!dupId && !dupNama && !dupNoAntrian) return false;
+
+    string fields[3];
+    int count = 0;
+    if (dupId) fields[count++] = "ID";
+    if (dupNama) fields[count++] = "Nama";
+    if (dupNoAntrian) fields[count++] = "No Antrian";
+
+    string msg = "Data ditolak! ";
+    for (int i = 0; i < count; i++) {
+        if (i > 0 && i == count - 1) msg += " dan ";
+        else if (i > 0) msg += ", ";
+        msg += fields[i];
+    }
+    msg += " sudah ada di antrian";
+    cout << msg << endl;
+    return true;
+}
+
 int main() {
   Node *head_darurat, *head_lansia, *head_umum, *front;
   string input[] = {"", "", "", "", "", "", ""};
@@ -102,16 +130,19 @@ int main() {
       switch (tipe) {
       case 1:
         cin >> input[0] >> input[1] >> input[2] >> input[4] >> input[5];
+        if (cekDuplikat(front, input)) break;
         input[3] = '1';
         head_darurat = insert(head_darurat, input);
         break;
       case 2:
         cin >> input[0] >> input[1] >> input[2] >> input[4] >> input[5];
+        if (cekDuplikat(front, input)) break;
         input[3] = '2';
         head_lansia = insert(head_lansia, input);
         break;
       case 3:
         cin >> input[0] >> input[1] >> input[2] >> input[4] >> input[5];
+        if (cekDuplikat(front, input)) break;
         input[3] = '3';
         head_umum = insert(head_umum, input);
         break;

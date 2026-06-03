@@ -1,5 +1,6 @@
 #include <chrono>
 #include <iostream>
+#include <fstream>
 
 using namespace std;
 
@@ -94,6 +95,7 @@ bool cekDuplikat(Node *front, string data[]) {
 
 int main() {
   Node *head_darurat, *head_lansia, *head_umum, *front;
+  // 7 indeks input sesuai urutan : ID, NAMA, JENIS LAYANAN, PRIORITAS, NO ANTRIAN, WAKTU KEDATANGAN, STATUS
   string input[] = {"", "", "", "", "", "", ""};
   input[3] = '1';
   head_darurat = newNode(input);
@@ -114,7 +116,7 @@ int main() {
     int tipe;
     cout
         << "RECEPTIONIST RUMAH SAKIT\n1. Tambah antrian\n2. Panggil antrian "
-           "berikutnya\n3. Cari data\n4. Update data pasien saat ini\nPilih : ";
+           "berikutnya\n3. Cari data\n4. Update data pasien saat ini\n5. Load data dummy dari file\nPilih : ";
     cin >> tipe;
     if (tipe == 9)
       break;
@@ -194,6 +196,37 @@ int main() {
         break;
       }
       break;
+    case 5: {
+      string filename;
+      cout << "Masukkan nama file dummy: ";
+      cin >> filename;
+      ifstream infile(filename);
+      if (!infile.is_open()) {
+        cout << "Gagal membuka file!" << endl;
+        break;
+      }
+      string id, nama, no_antrian;
+      int count = 0;
+      while (infile >> id >> nama >> no_antrian) {
+        string input[] = {id, nama, "", "", no_antrian, "08.00", "Dalam Antrian"};
+        char cat = id[0];
+        input[3] = cat;
+        if (cat == '1') {
+          input[2] = "IGD";
+          head_darurat = insert(head_darurat, input);
+        } else if (cat == '2') {
+          input[2] = "Bedah";
+          head_lansia = insert(head_lansia, input);
+        } else {
+          input[2] = "Poliklinik";
+          head_umum = insert(head_umum, input);
+        }
+        count++;
+      }
+      infile.close();
+      cout << "Berhasil memuat " << count << " data dummy dari file." << endl;
+      break;
+    }
     }
     cout << endl;
   }

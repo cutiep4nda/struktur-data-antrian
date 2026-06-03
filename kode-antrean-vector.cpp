@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string.h>
 #include <vector>
+#include <fstream>
 using namespace std;
 
 typedef struct Node
@@ -99,7 +100,7 @@ int main()
     while (1 < 2)
     {
         int tipe;
-        cout << "RECEPTIONIST RUMAH SAKIT\n1. Tambah antrian\n2. Panggil antrian berikutnya\n3. Cari data\n4. Update data pasien saat ini\nPilih : ";
+        cout << "RECEPTIONIST RUMAH SAKIT\n1. Tambah antrian\n2. Panggil antrian berikutnya\n3. Cari data\n4. Update data pasien saat ini\n5. Load data dummy dari file\nPilih : ";
         cin >> tipe;
 
         if (tipe == 9)
@@ -187,6 +188,49 @@ int main()
                 break;
             }
             break;
+        case 5:
+        {
+            string filename;
+            cout << "Masukkan nama file dummy: ";
+            cin >> filename;
+            ifstream infile(filename);
+            if (!infile.is_open())
+            {
+                cout << "Gagal membuka file!" << endl;
+                break;
+            }
+            string id, nama, no_antrian;
+            int count = 0;
+            while (infile >> id >> nama >> no_antrian)
+            {
+                Node input;
+                input.data[0] = id;
+                input.data[1] = nama;
+                char cat = id[0];
+                input.data[3] = cat;
+                if (cat == '1')
+                {
+                    input.data[2] = "IGD";
+                }
+                else if (cat == '2')
+                {
+                    input.data[2] = "Bedah";
+                }
+                else
+                {
+                    input.data[2] = "Poliklinik";
+                }
+                input.data[4] = no_antrian;
+                input.data[5] = "08.00";
+                input.data[6] = "Dalam Antrian";
+                
+                queue.push_back(input);
+                count++;
+            }
+            infile.close();
+            cout << "Berhasil memuat " << count << " data dummy dari file." << endl;
+            break;
+        }
         default:
             break;
         }
